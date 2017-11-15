@@ -55,7 +55,7 @@ void AbstractRestTableModel::refresh()
 {
   _serviceUrl.setQuery(_params.urlQuery());
   QNetworkReply* reply = _network->get(QNetworkRequest(_serviceUrl));
-  connect(reply, SIGNAL(readyRead()),
+  connect(reply, SIGNAL(finished()),
           this, SLOT(processLoadReply()));
 }
 
