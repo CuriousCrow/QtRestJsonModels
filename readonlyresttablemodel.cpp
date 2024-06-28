@@ -14,13 +14,13 @@ void ReadOnlyRestTableModel::setRefreshMode(ReadOnlyRestTableModel::RefreshMode 
 
 void ReadOnlyRestTableModel::processLoadReply()
 {
-  //Жесткое обновление модели с сигналом modelReset
+  //Hard refresh (emits modelReset signal)
   if (_refreshMode == Hard || _firstRefresh) {
     AbstractRestTableModel::processLoadReply();
     _firstRefresh = false;
     return;
   }
-  //Мягкое построковое обновление модели
+  //Soft refresh
   QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
   QJsonDocument jDoc = QJsonDocument::fromJson(reply->readAll());
   foreach(QJsonValue item, jDoc.array()){
@@ -39,20 +39,24 @@ void ReadOnlyRestTableModel::processLoadReply()
 
 Qt::ItemFlags ReadOnlyRestTableModel::flags(const QModelIndex &index) const
 {
+  Q_UNUSED(index)
   return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
 }
 
 void ReadOnlyRestTableModel::tryToSubmit(qlonglong id)
 {
-  //Read only model don't need submit methods
+  Q_UNUSED(id)
+  //Read only model doesn't need submit methods
 }
 
 void ReadOnlyRestTableModel::deleteItem(int row)
 {
-  //Read only model don't need submit methods
+  Q_UNUSED(row)
+  //Read only model doesn't need submit methods
 }
 
 void ReadOnlyRestTableModel::addItem(QJsonObject &item)
 {
-  //Read only model don't need submit methods
+  Q_UNUSED(item)
+  //Read only model doesn't need submit methods
 }

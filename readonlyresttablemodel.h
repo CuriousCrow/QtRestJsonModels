@@ -3,8 +3,8 @@
 
 #include "abstractresttablemodel.h"
 
-/** Облегченная нередактируемая табличная модель для отображения данных от REST-запроса
- * Реализует механизм мягкого построчного обновления (подходит только для таблиц постоянной длины)
+/** Simplified read-only REST table model
+ * Implements soft row-based refresh algorithm (works with stable tables)
  */
 class ReadOnlyRestTableModel : public AbstractRestTableModel
 {
@@ -20,7 +20,7 @@ private:
   RefreshMode _refreshMode = Soft;
   bool _firstRefresh = true;
 protected slots:
-  /* Слоты обработки ответов от сервера */
+  /* Response handler slots */
   virtual void processLoadReply();
 
   // QAbstractItemModel interface

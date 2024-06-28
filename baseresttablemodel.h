@@ -11,27 +11,26 @@
 #include <QJsonValue>
 
 
-/** Базовая табличная модель для работы с REST API
-  Действия добавления и удаления строк не кэшируются моделью
-  и отображаются моделью только после получения ответа от сервера.
-  Изменения значений ячеек кэшируются и могут быть
-  как отосланы на сервер (submit), так и откачены (revert).
+/** Basic table model for handling entity list through REST API
+  Add and Delete operations are not cached by the model (and therefore cannot be reverted simply)
+  and applied only after having received server response.
+  Modify operations would be cached inside model and then can be either submitted, or reverted.
 */
 class BaseRestTableModel : public AbstractRestTableModel
 {
   Q_OBJECT
 public:
   BaseRestTableModel(QNetworkAccessManager* network, QObject* parent = 0);
-  /* Отправка на сервер изменений строки */
+  /* Submit row changes to REST service */
   void tryToSubmit(qlonglong id);
-  /* Откат изменений строки */
+  /* Revert local row changes */
   void revert(int row);
-  /* Удаление строки */
+  /* Delete row */
   void deleteItem(int row);
-  /* Добавление строки */
+  /* Add row */
   void addItem(QJsonObject &item);
 private slots:
-  /* Слоты обработки ответов от сервера */
+  /* Response handlers slots */
   void processDeleteReply();
   void processCreateReply();
   void processUpdateReply();

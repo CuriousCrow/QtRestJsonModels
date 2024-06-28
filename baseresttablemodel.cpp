@@ -9,12 +9,12 @@ BaseRestTableModel::BaseRestTableModel(QNetworkAccessManager* network, QObject *
 }
 
 void BaseRestTableModel::tryToSubmit(qlonglong id)
-{
+{    
   QJsonDocument jDoc = QJsonDocument(_changes[id]);
   QNetworkRequest updateRequest(itemUrl(id));
   updateRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
   QNetworkReply* reply = _network->put(updateRequest, jDoc.toJson());
-  reply->setProperty("ID", id);
+  reply->setProperty(qPrintable(this->_idField), id);
   connect(reply, SIGNAL(finished()),
           this, SLOT(processUpdateReply()));  
 }
@@ -38,7 +38,7 @@ void BaseRestTableModel::deleteItem(int row)
   qlonglong id = idByRow(row);
   QNetworkRequest delRequest(itemUrl(id));
   QNetworkReply* reply = _network->deleteResource(delRequest);
-  reply->setProperty("ID", id);
+  reply->setProperty(qPrintable(this->_idField), id);
   connect(reply, SIGNAL(finished()),
           this, SLOT(processDeleteReply()));
 }
@@ -49,6 +49,7 @@ void BaseRestTableModel::addItem(QJsonObject &item)
   QJsonDocument jDoc = QJsonDocument(item);
   QNetworkRequest createRequest(_serviceUrl);
   createRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+  qDebug() << jDoc.toJson();
   QNetworkReply* reply = _network->post(createRequest, jDoc.toJson());
   connect(reply, SIGNAL(finished()),
           this, SLOT(processCreateReply()));
@@ -59,13 +60,13 @@ void BaseRestTableModel::processDeleteReply()
   qDebug() << "delete action reply";
   QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
   if (reply->error() == QNetworkReply::NoError){
-    qlonglong id = reply->property("ID").toLongLong();
+    qlonglong id = reply->property(qPrintable(this->_idField)).toLongLong();
     int row = _rowIndex.indexOf(id);
-    emit beginRemoveRows(QModelIndex(), row, row);
+    beginRemoveRows(QModelIndex(), row, row);
     _rowIndex.removeAt(row);
     _items.remove(id);
     _changes.remove(id);
-    emit endRemoveRows();
+    endRemoveRows();
   }
   else {
     qDebug() << reply->errorString();
@@ -80,11 +81,11 @@ void BaseRestTableModel::processCreateReply()
   if (reply->error() == QNetworkReply::NoError){
     QJsonDocument jDoc = QJsonDocument::fromJson(reply->readAll());
     QJsonObject jObj = jDoc.object();
-    emit beginInsertRows(QModelIndex(), _items.count(), _items.count());
+    beginInsertRows(QModelIndex(), _items.count(), _items.count());
     qlonglong id = jObj.value(_idField).toVariant().toLongLong();
     _rowIndex.append(id);
     _items.insert(id, jObj);
-    emit endInsertRows();
+    endInsertRows();
   }
   else {
     qDebug() << reply->errorString();
@@ -97,7 +98,7 @@ void BaseRestTableModel::processUpdateReply()
   qDebug() << "update action reply";
   QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
   if (reply->error() == QNetworkReply::NoError){
-    qlonglong id = reply->property("ID").toLongLong();
+    qlonglong id = reply->property(qPrintable(this->_idField)).toLongLong();
     int row = _rowIndex.indexOf(id);
     _items.insert(id, _changes.take(id)); //Возможно нужен swap
 

@@ -24,7 +24,7 @@ private:
   QMap<QString, QVariant> paramMap;
 };
 
-/** Абстрактный класс поля */
+/** Abstract json model column */
 class AbstractJsonColumn {
 public:
   AbstractJsonColumn(QString name, QString caption = "");
@@ -39,7 +39,7 @@ protected:
   virtual QString boolToStr(bool value) const;
 };
 
-/** Структура для хранения данных о колонках модели */
+/** Base column implementation */
 class BaseJsonColumn : public AbstractJsonColumn {
 public:
   BaseJsonColumn(QString name, QString caption = "");
@@ -51,11 +51,11 @@ class AbstractRestTableModel : public QAbstractTableModel
   Q_OBJECT
 public:
   AbstractRestTableModel(QNetworkAccessManager* network, QObject* parent = 0);
-  /* Установка URL REST-сервиса */
+  /* Base endpoint URL for basic rest operations */
   virtual void setServiceUrl(QUrl url, bool andRefresh = true);
-  /* Установка имени колоноки идентификатора (по умолчанию id) */
+  /* Specify original id field name (by default "id") */
   void setIdField(QString name);
-  /* Регистрация колонок модели */
+  /* Register new model column */
   void registerColumn(AbstractJsonColumn* column);
 
   void registerColumn(QString name, QString caption = "");
@@ -63,19 +63,19 @@ public:
   void setParam(QString name, QVariant value);
 
   void setDefaultIcon(QIcon icon);
-  /* Наличие несохраненных данных */
+  /* Is any unsaved changes in the model */
   bool isDirty();
-  /* Отправка на сервер всех кэшированных изменений */
+  /* Submit all uncommited changes */
   void tryToSubmitAll();
-  /* Отправка на сервер изменений строки */
+  /* Submit one model row by id value */
   virtual void tryToSubmit(qlonglong id) = 0;
-  /* Откат изменений строки */
-  void revert(int row);
-  /* Откат всех кэшированных изменений */
+  /* Revert row uncommited changes */
+  void revertRow(int row);
+  /* Revert all uncommited changes */
   virtual void revertAll();
-  /* Удаление строки */
+  /* Delete model row */
   virtual void deleteItem(int row) = 0;
-  /* Добавление строки */
+  /* Add new model row */
   virtual void addItem(QJsonObject &item) = 0;
 
   virtual void modifyRowData(QJsonObject &item);
@@ -114,13 +114,13 @@ signals:
   void beforeUpdate(QJsonObject &jObj, QString colName);
   void beforeAppend(QJsonObject &jObj);
 public slots:
-  /* Запрос данных модели с сервера целиком */
+  /* Request and refresh all model data */
   void refresh();
-  /* Обновление данных без запроса на сервер */
+  /* Refresh model calculated data (without a request the server) */
   void offlineRefresh();
   void refreshColumn(int col);
 protected slots:
-  /* Слоты обработки ответов от сервера */
+  /* Response handler slots */
   virtual void processLoadReply();
   void processDeleteReply();
   void processCreateReply();

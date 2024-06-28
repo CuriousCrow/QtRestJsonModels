@@ -62,7 +62,7 @@ void AbstractRestTableModel::refresh()
 void AbstractRestTableModel::offlineRefresh()
 {
   int rowCount = _rowIndex.count();
-  if (rowCount = 0)
+  if (rowCount == 0)
     return;
   int colIdx = 0;
   foreach(AbstractJsonColumn* col, _columns) {
@@ -85,16 +85,17 @@ void AbstractRestTableModel::tryToSubmitAll()
   }
 }
 
-void AbstractRestTableModel::revert(int row)
+void AbstractRestTableModel::revertRow(int row)
 {
   //При необходимости реализовать в потомке
+  Q_UNUSED(row)
 }
 
 void AbstractRestTableModel::revertAll()
 {
-  emit beginResetModel();
+  beginResetModel();
   _changes.clear();
-  emit endResetModel();
+  endResetModel();
 }
 
 void AbstractRestTableModel::modifyRowData(QJsonObject &item)
@@ -200,9 +201,14 @@ QJsonObject AbstractRestTableModel::rowJsonObject(int row) const
 
 void AbstractRestTableModel::processLoadReply()
 {
-  emit beginResetModel();
   QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
-  QJsonDocument jDoc = QJsonDocument::fromJson(reply->readAll());
+  if (reply->error() != QNetworkReply::NoError) {
+    qWarning() << "Error while loading model:" << reply->error();
+    return;
+  }
+  beginResetModel();
+  QByteArray responseBytes = reply->readAll();
+  QJsonDocument jDoc = QJsonDocument::fromJson(responseBytes);
   clear();
   foreach(QJsonValue item, jDoc.array()){
     qlonglong id = item.toObject().value(_idField).toVariant().toLongLong();
@@ -210,7 +216,7 @@ void AbstractRestTableModel::processLoadReply()
     _items.insert(id, item.toObject());
   }
   reply->deleteLater();
-  emit endResetModel();
+  endResetModel();
 }
 
 void AbstractRestTableModel::processDeleteReply()
@@ -230,11 +236,13 @@ void AbstractRestTableModel::processUpdateReply()
 
 int AbstractRestTableModel::rowCount(const QModelIndex &parent) const
 {
+  Q_UNUSED(parent)
   return _rowIndex.count();
 }
 
 int AbstractRestTableModel::columnCount(const QModelIndex &parent) const
 {
+  Q_UNUSED(parent)
   return _columns.count();
 }
 
@@ -259,39 +267,39 @@ QVariant AbstractRestTableModel::data(const QModelIndex &index, int role) const
 
 bool AbstractRestTableModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
-  {
-    if (!index.isValid()) {
-      return false;
-    }
-    if (role == Qt::EditRole) {
-      qlonglong id = _rowIndex[index.row()];
-      QJsonObject jObj;
-      if (_changes.contains(id)) {
-        jObj = _changes[id];
-      }
-      else {
-        jObj = QJsonObject(_items[id]);
-      }
-      QVariant oldValue = jObj.value(columnNameByIdx(index.column()));
-      QVariant newValue = value;
-      if (newValue == oldValue)
-        return true;
-      jObj.insert(columnNameByIdx(index.column()), QJsonValue::fromVariant(value));
-      emit beforeUpdate(jObj, columnNameByIdx(index.column()));
-      _changes.insert(id, jObj);
-      emit dataChanged(index, index);
-    }
-    return true;
+  if (!index.isValid()) {
+    return false;
   }
+  if (role == Qt::EditRole) {
+    qlonglong id = _rowIndex[index.row()];
+    QJsonObject jObj;
+    if (_changes.contains(id)) {
+      jObj = _changes[id];
+    }
+    else {
+      jObj = QJsonObject(_items[id]);
+    }
+    QVariant oldValue = jObj.value(columnNameByIdx(index.column()));
+    QVariant newValue = value;
+    if (newValue == oldValue)
+      return true;
+    jObj.insert(columnNameByIdx(index.column()), QJsonValue::fromVariant(value));
+    emit beforeUpdate(jObj, columnNameByIdx(index.column()));
+    _changes.insert(id, jObj);
+    emit dataChanged(index, index);
+  }
+  return true;
+
 }
 
 Qt::ItemFlags AbstractRestTableModel::flags(const QModelIndex &index) const
 {
+  Q_UNUSED(index)
   return Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsEditable;
 }
 
 QVariant AbstractRestTableModel::headerData(int section, Qt::Orientation orientation, int role) const
-{\
+{
   if (section < 0 || section >= _columns.count())
     return QVariant();
   if (role == Qt::DisplayRole) {
@@ -354,7 +362,9 @@ BaseJsonColumn::BaseJsonColumn(QString name, QString caption)
 }
 
 QVariant BaseJsonColumn::data(int row, int role, const QJsonObject &jObj) const
-{  
+{
+  Q_UNUSED(row)
+
   if (role == Qt::DisplayRole || role == Qt::EditRole) {
     QVariant val = jsonToVar(jObj.value(name));
     if ((role == Qt::DisplayRole) && (val.type() == QVariant::Bool)) {
